@@ -64,7 +64,7 @@ function displayNumber(v,opts){const n=num(v,opts);return n===0?'—':fmt.format
 function loadState(){try{const parsed=JSON.parse(localStorage.getItem(STORAGE_KEY));return mergeState(parsed)}catch(e){return clone(defaults)}}
 function sanitizeItems(arr,fallback,withUnit){if(!Array.isArray(arr))return clone(fallback);return arr.filter(i=>i&&typeof i==='object').map(i=>({name:String(i.name??''),value:String(i.value??''),...(withUnit?{unit:String(i.unit??'un')}:{}),...(i.isCrimes?{isCrimes:true}:{})}))}
 function mergeState(raw){if(!raw||typeof raw!=='object')return clone(defaults);const fixed={},operational={};for(const[k,v]of Object.entries({...defaults.fixed,...(raw.fixed&&typeof raw.fixed==='object'?raw.fixed:{})}))fixed[k]=String(v??'');for(const[k,v]of Object.entries({...defaults.operational,...(raw.operational&&typeof raw.operational==='object'?raw.operational:{})}))operational[k]=String(v??'');const types=sanitizeItems(raw.types,defaults.types),orgs=sanitizeItems(raw.orgs,defaults.orgs),materials=sanitizeItems(raw.materials,defaults.materials,true);let found=false;types.forEach(i=>{if(i.isCrimes){if(found)delete i.isCrimes;else found=true}});if(!found){const idx=types.findIndex(i=>i.name.trim().toLocaleLowerCase('pt-BR')==='crimes eleitorais');if(idx>=0)types[idx].isCrimes=true;else types.unshift({name:'Crimes eleitorais',value:'',isCrimes:true})}return{fixed,operational,types,orgs,materials,lastExport:raw.lastExport||null}}
-function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));if(typeof window!=='undefined'&&window.__boletimChannel)try{window.__boletimChannel.postMessage({type:'state',payload:state})}catch(e){}}
+function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));if(typeof window!=='undefined'&&window.__boletimChannel)try{window.__boletimChannel.postMessage({type:'state',payload:state})}catch(e){}if(typeof window!=='undefined'&&window.__saveFirebase)try{window.__saveFirebase()}catch(e){}}
 function getPath(path){return path.split('.').reduce((o,k)=>o[k],state)}
 function setPath(path,value){const p=path.split('.');state[p[0]][p[1]]=value}
 function initializeFields(){document.querySelectorAll('[data-bind]').forEach(el=>{el.value=getPath(el.dataset.bind)??'';el.addEventListener('input',()=>{setPath(el.dataset.bind,el.value);saveState();render(false)})})}
@@ -95,6 +95,17 @@ $('#clearBtn').addEventListener('click',()=>{if(!confirm('Limpar todos os dados 
 function initializeValues(){document.querySelectorAll('[data-bind]').forEach(el=>el.value=getPath(el.dataset.bind)??'')}
 initializeFields();render();
 window.__boletim={getState:()=>clone(state),validate,brazilTimestamp,exportPdf};
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js";
+const firebaseConfig={apiKey:"AIzaSyDNFJGBIeAos9Qdk7UUiUw6uc_ekbH-BIU",authDomain:"dasheleiao.firebaseapp.com",projectId:"dasheleiao",storageBucket:"dasheleiao.firebasestorage.app",messagingSenderId:"239224447561",appId:"1:239224447561:web:7121d5386c3c3b75785598"};
+try{
+const app=initializeApp(firebaseConfig);
+const dbRef=ref(getDatabase(app),'boletim');
+let t=null;
+window.__saveFirebase=()=>{clearTimeout(t);t=setTimeout(()=>{const s=window.__boletim&&window.__boletim.getState();if(s)set(dbRef,s).catch(e=>console.error('Firebase save failed',e))},300)};
+}catch(e){console.error('Firebase init failed',e)}
 </script>
 </body>
 </html>

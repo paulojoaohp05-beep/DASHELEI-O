@@ -53,7 +53,23 @@ $('#jsonFile').addEventListener('change',async e=>{const file=e.target.files[0];
 $('#fullscreenBtn').addEventListener('click',()=>{const d=document.documentElement;if(d.requestFullscreen)d.requestFullscreen();else if(d.webkitRequestFullscreen)d.webkitRequestFullscreen()});
 $('#refreshBtn').addEventListener('click',()=>{if(typeof BroadcastChannel!=='undefined'){const ch=new BroadcastChannel(BROADCAST_KEY);ch.postMessage({type:'request'});setTimeout(()=>ch.close(),500)}else{alert('Sincronização em tempo real não disponível neste navegador. Use o botão Carregar JSON.')}});
 window.addEventListener('resize',fit);
+window.receiveState=payload=>{state=mergeState(payload);render();fit()};
 render();fit();
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js";
+const firebaseConfig={apiKey:"AIzaSyDNFJGBIeAos9Qdk7UUiUw6uc_ekbH-BIU",authDomain:"dasheleiao.firebaseapp.com",projectId:"dasheleiao",storageBucket:"dasheleiao.firebasestorage.app",messagingSenderId:"239224447561",appId:"1:239224447561:web:7121d5386c3c3b75785598"};
+try{
+const app=initializeApp(firebaseConfig);
+const dbRef=ref(getDatabase(app),'boletim');
+const status=$('#status');
+onValue(dbRef,(snapshot)=>{
+const data=snapshot.val();
+if(!data){status.textContent='Aguardando dados no Firebase…';status.className='status waiting';return}
+if(window.receiveState){window.receiveState(data);status.textContent='Sincronizado via Firebase em '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});status.className='status'}
+},(err)=>{status.textContent='Erro Firebase: '+err.message;status.className='status waiting'});
+}catch(e){console.error('Firebase init failed',e);$('#status').textContent='Firebase indisponível. Use Carregar JSON.'}
 </script>
 </body>
 </html>
