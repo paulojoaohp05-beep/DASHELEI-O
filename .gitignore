@@ -1,0 +1,17 @@
+# Dependências locais
+node_modules/
+
+# Perfis e caches de teste
+.chrome-test/
+.reference-render/
+
+# Arquivos temporários de trabalho
+test-runner.js
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.pptx
+
+# Configuração local do editor
+.windsurfrules
